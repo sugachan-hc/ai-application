@@ -35,8 +35,19 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+def _load_api_key() -> str:
+    if key := st.session_state.get("api_key", ""):
+        return key
+    try:
+        if key := st.secrets.get("GEMINI_API_KEY", ""):
+            return key
+    except Exception:
+        pass
+    return os.getenv("GEMINI_API_KEY", "")
+
+
 def get_client() -> genai.Client | None:
-    api_key = st.session_state.get("api_key", "") or os.getenv("GEMINI_API_KEY", "")
+    api_key = _load_api_key()
     if not api_key:
         return None
     return genai.Client(api_key=api_key)
@@ -71,8 +82,16 @@ with st.sidebar:
     if api_key_input:
         st.session_state["api_key"] = api_key_input
 
-    env_key = os.getenv("GEMINI_API_KEY", "")
-    if env_key:
+    _secrets_key = ""
+    try:
+        _secrets_key = st.secrets.get("GEMINI_API_KEY", "")
+    except Exception:
+        pass
+    _env_key = os.getenv("GEMINI_API_KEY", "")
+
+    if _secrets_key:
+        st.success("✅ Secrets から API キー読み込み済み")
+    elif _env_key:
         st.success("✅ .env から API キー読み込み済み")
     elif st.session_state.get("api_key"):
         st.success("✅ API キー設定済み")
